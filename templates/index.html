@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather App</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1>🌤️ Weather Finder</h1>
+            
+            <div class="form-group">
+                <input 
+                    type="text" 
+                    id="cityInput" 
+                    placeholder="Enter city name (e.g., London, New York)"
+                    autocomplete="off"
+                >
+                <button onclick="searchWeather()">Search</button>
+            </div>
+            
+            <div id="loading" class="loading hidden">Loading...</div>
+            
+            <div id="error" class="error hidden"></div>
+            
+            <div id="weatherResult" class="weather-result hidden">
+                <h2 id="cityName"></h2>
+                
+                <div class="weather-main">
+                    <div class="temperature">
+                        <span id="temp"></span>°F
+                    </div>
+                    <div class="condition">
+                        <p id="weatherCondition"></p>
+                    </div>
+                </div>
+                
+                <div class="weather-details">
+                    <div class="detail">
+                        <span class="label">Feels Like</span>
+                        <span class="value"><span id="feelsLike"></span>°F</span>
+                    </div>
+                    <div class="detail">
+                        <span class="label">Humidity</span>
+                        <span class="value"><span id="humidity"></span>%</span>
+                    </div>
+                    <div class="detail">
+                        <span class="label">Wind Speed</span>
+                        <span class="value"><span id="windSpeed"></span> mph</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Allow Enter key to trigger search
+        document.getElementById('cityInput').addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                searchWeather();
+            }
+        });
+
+        function searchWeather() {
+            const city = document.getElementById('cityInput').value.trim();
+            
+            if (!city) {
+                showError('Please enter a city name');
+                return;
+            }
+            
+            // Show loading state
+            hideElements(['error', 'weatherResult']);
+            showElement('loading');
+            
+            // Send request to backend
+            fetch('/weather', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ city: city })
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideElement('loading');
+                
+                if (data.error) {
+                    showError(data.error);
+                } else {
+                    displayWeather(data);
+                }
+            })
+            .catch(error => {
+                hideElement('loading');
+                console.error('Error:', error);
+                showError('An unexpected error occurred. Please try again.');
+            });
+        }
+
+        function displayWeather(data) {
+            document.getElementById('cityName').textContent = 
+                data.city + (data.country ? ', ' + data.country : '');
+            document.getElementById('temp').textContent = data.temperature;
+            document.getElementById('feelsLike').textContent = data.feels_like;
+            document.getElementById('humidity').textContent = data.humidity;
+            document.getElementById('windSpeed').textContent = data.wind_speed;
+            document.getElementById('weatherCondition').textContent = data.condition;
+            
+            hideElement('error');
+            showElement('weatherResult');
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            showElement('error');
+        }
+
+        function showElement(id) {
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        function hideElement(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        function hideElements(ids) {
+            ids.forEach(id => hideElement(id));
+        }
+    </script>
+</body>
+</html>
